@@ -1,0 +1,15 @@
+{
+  "extends": "@tm9657/tsconfig/nextjs.json",
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "incremental": false,
+  }
+}

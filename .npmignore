@@ -1,0 +1,5 @@
+.turbo
+src
+.idea
+tsconfig.json
+bun.lockb
