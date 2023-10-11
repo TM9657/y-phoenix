@@ -252,8 +252,6 @@ export class PhoenixProvider extends Observable<string> {
                     return;
                 }
 
-                (this.clients.get(message.clientID) as any).lastSeen = Date.now();
-
                 const received = await this.receiveMessage(message);
                 await this.interpretMessage({ ...message, buffer: received });
             } catch (e) {
