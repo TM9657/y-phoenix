@@ -7,15 +7,15 @@
  * Last changed: 22:3 10.10.2023 by FS
  */
 
-//disable-eslint
 import * as Y from "yjs"; // eslint-disable-line
 import * as awarenessProtocol from "y-protocols/awareness";
-
 import { Observable } from "lib0/observable";
 import { Channel, Socket } from "@tm9657/socket-client/types/src/phoenix";
 import { join } from "@tm9657/socket-client";
 import jwtDecode from "jwt-decode";
 import { fromUint8Array, toUint8Array } from "js-base64";
+import debug from "debug";
+const debugLog = debug("y-phoenix");
 
 type IMessage = {
     sender: string;
@@ -53,6 +53,8 @@ export class PhoenixProvider extends Observable<string> {
     private readonly socket: Socket;
     private readonly sub: string;
     private readonly password: string;
+    private readonly debug: boolean;
+    private readonly resyncSecs: number;
     private channel: Channel | null = null;
     private connectionState: 0 | 1 | 2;
     private key: CryptoKey | null = null;
@@ -64,9 +66,14 @@ export class PhoenixProvider extends Observable<string> {
         roomName: string,
         token: string,
         password: string,
-        doc: Y.Doc
+        doc: Y.Doc,
+        debug: boolean = false,
+        resyncSecs: number = 60
     ) {
         super();
+        this.resyncSecs = resyncSecs;
+        this.debug = debug;
+        if(debug) debugLog.enabled = true
         this.clientID = crypto.randomUUID();
         this.roomName = roomName;
         this.token = token;
@@ -89,6 +96,16 @@ export class PhoenixProvider extends Observable<string> {
         );
 
         this.connect();
+        this.resync()
+    }
+
+    private async resync() {
+        if(this.resyncSecs <= 0) return
+        setTimeout(async () => {
+            const stateVector = Y.encodeStateVector(this.doc);
+            await this.broadcast(stateVector, "sync-request-1");
+            this.resync()
+        }, this.resyncSecs * 1000)
     }
 
     async broadcast(buf: Uint8Array, type) {
@@ -101,6 +118,8 @@ export class PhoenixProvider extends Observable<string> {
             console.error("[Phoenix Connector] no key for broadcast");
             return;
         }
+
+        debugLog("[broadcast] " + type)
         const random = crypto.getRandomValues(new Uint8Array(4));
         const date = numToUint8Array(Date.now());
         const iv = new Uint8Array([...random, ...date]);
@@ -160,6 +179,7 @@ export class PhoenixProvider extends Observable<string> {
 
     private async updateDocHandler(update: Uint8Array, origin: any) {
         if (origin !== this) {
+            debugLog("[updateDocHandler] broadcasting update from other origin")
             await this.broadcast(update, "doc");
             return;
         }
@@ -167,6 +187,7 @@ export class PhoenixProvider extends Observable<string> {
 
     private async updateAwarenessHandler({ added, updated, removed }, origin) {
         const changedClients = added.concat(updated).concat(removed);
+        debugLog("[updateAwarenessHandler] broadcasting update from awareness handler")
         await this.broadcast(
             awarenessProtocol.encodeAwarenessUpdate(this.awareness, changedClients),
             "aware"
@@ -204,29 +225,35 @@ export class PhoenixProvider extends Observable<string> {
         const iv = message.iv;
         let decrypted = await this.decryptMessage(buffer, iv);
         let arrayDecrypted = new Uint8Array(decrypted);
+        
         return arrayDecrypted;
     }
 
     private async interpretMessage(message: IMessage) {
         switch (message.type) {
             case "doc":
+                debugLog("[interpretMessage] interpreting doc update")
                 Y.applyUpdate(this.doc, message.buffer, this);
                 return;
             case "sync-request-1":
+                debugLog("[interpretMessage] interpreting sync request 1")
                 const stateVector = Y.encodeStateVector(this.doc);
                 let diff_init = Y.encodeStateAsUpdateV2(this.doc, message.buffer);
                 await this.broadcast(stateVector, "sync-answer-1");
                 await this.broadcast(diff_init, "sync-answer-2");
                 return;
             case "sync-answer-1":
+                debugLog("[interpretMessage] interpreting sync answer 1")
                 let diff_return = Y.encodeStateAsUpdateV2(this.doc, message.buffer);
                 await this.broadcast(diff_return, "sync-answer-2");
                 return;
 
             case "sync-answer-2":
+                debugLog("[interpretMessage] interpreting sync answer 2")
                 Y.applyUpdateV2(this.doc, message.buffer, this);
                 return;
             case "aware":
+                debugLog("[interpretMessage] interpreting awareness update")
                 awarenessProtocol.applyAwarenessUpdate(
                     this.awareness,
                     message.buffer,

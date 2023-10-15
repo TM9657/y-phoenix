@@ -1,6 +1,6 @@
 {
   "name": "@tm9657/y-phoenix",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "The Phoenix Channels Provider is meant to be used as a Yjs Provider for [Generic Socket Rooms](https://github.com/TM9657/generic-socket-rooms). It enables End-to-End encryption, realtime communication between multiple users.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,6 +25,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\"",
+    "version": "bunx changeset version",
+    "release": "bunx changeset publish --access public",
     "build": "tsup src/index.ts --dts",
     "dev": "npm run build -- --watch"
   },
@@ -36,8 +38,10 @@
   ],
   "author": "TM9657 GmbH",
   "devDependencies": {
+    "@changesets/cli": "^2.26.2",
     "@tm9657/eslint-config-custom": "^1.2.0",
     "@tm9657/tsconfig": "latest",
+    "@types/debug": "^4.1.9",
     "@types/node": "^17.0.45",
     "bun-types": "latest",
     "tsup": "^6.7.0",
@@ -46,6 +50,7 @@
   },
   "dependencies": {
     "@tm9657/socket-client": "latest",
+    "debug": "^4.3.4",
     "js-base64": "^3.7.5",
     "jwt-decode": "^3.1.2",
     "lib0": "^0.2.52",
