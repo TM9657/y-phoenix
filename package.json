@@ -1,6 +1,6 @@
 {
   "name": "@tm9657/y-phoenix",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "The Phoenix Channels Provider is meant to be used as a Yjs Provider for [Generic Socket Rooms](https://github.com/TM9657/generic-socket-rooms). It enables End-to-End encryption, realtime communication between multiple users.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,6 +15,7 @@
     ],
     "minimize": true,
     "splitting": true,
+    "dts": true,
     "sourcemap": true,
     "clean": true,
     "treeshake": true
@@ -52,7 +53,6 @@
     "@tm9657/socket-client": "latest",
     "debug": "^4.3.4",
     "js-base64": "^3.7.5",
-    "jwt-decode": "^3.1.2",
     "lib0": "^0.2.52",
     "y-protocols": "^1.0.5"
   },

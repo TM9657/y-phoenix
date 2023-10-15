@@ -12,7 +12,6 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import { Observable } from "lib0/observable";
 import { Channel, Socket } from "@tm9657/socket-client/types/src/phoenix";
 import { join } from "@tm9657/socket-client";
-import jwtDecode from "jwt-decode";
 import { fromUint8Array, toUint8Array } from "js-base64";
 import debug from "debug";
 const debugLog = debug("y-phoenix");
@@ -39,24 +38,13 @@ function numToUint8Array(num: number) {
 export class PhoenixProvider extends Observable<string> {
     awareness: awarenessProtocol.Awareness;
     synced = false;
-    /**
-     * @param {Socket} channel
-     * @param {string} roomname
-     * @param {Y.Doc} doc
-     * @param {object} opts
-     * @param {boolean} [opts.connect]
-     * @param {awarenessProtocol.Awareness} [opts.awareness]
-     */
     private readonly roomName: string;
     private readonly token: string;
     private readonly doc: Y.Doc;
     private readonly socket: Socket;
-    private readonly sub: string;
     private readonly password: string;
-    private readonly debug: boolean;
     private readonly resyncSecs: number;
     private channel: Channel | null = null;
-    private connectionState: 0 | 1 | 2;
     private key: CryptoKey | null = null;
     private clientID: string;
     private clients: Map<string, string> = new Map();
@@ -72,7 +60,6 @@ export class PhoenixProvider extends Observable<string> {
     ) {
         super();
         this.resyncSecs = resyncSecs;
-        this.debug = debug;
         if(debug) debugLog.enabled = true
         this.clientID = crypto.randomUUID();
         this.roomName = roomName;
@@ -81,8 +68,6 @@ export class PhoenixProvider extends Observable<string> {
         this.doc = doc;
         this.socket = socket;
         this.awareness = new awarenessProtocol.Awareness(this.doc);
-        this.connectionState = 0;
-        this.sub = (jwtDecode(token) as any).sub as string;
 
         this.doc.on("update", async (update: Uint8Array, origin: any) => {
             await this.updateDocHandler(update, origin);
@@ -162,9 +147,7 @@ export class PhoenixProvider extends Observable<string> {
 
     async connect() {
         await this.setupKey();
-        this.connectionState = 1;
         this.channel = await join(this.socket, this.roomName, this.token);
-        this.connectionState = 2;
         await this.setupChannel();
     }
 

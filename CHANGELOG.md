@@ -1,5 +1,11 @@
 # @tm9657/y-phoenix
 
+## 1.1.9
+
+### Patch Changes
+
+- Removed unused packages
+
 ## 1.1.8
 
 ### Patch Changes
